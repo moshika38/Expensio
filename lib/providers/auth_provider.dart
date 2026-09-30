@@ -87,7 +87,18 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Sign-in failed. Please check internet connection and try again.';
+      final errorStr = e.toString();
+      debugPrint('Google Sign-In Error Details: $e');
+
+      if (errorStr.contains('network_error') || errorStr.contains('UNAVAILABLE')) {
+        _errorMessage = 'Network connection issue. Please check your internet and try again.';
+      } else if (errorStr.contains('10') || errorStr.contains('DEVELOPER_ERROR')) {
+        _errorMessage = 'Google Sign-In developer configuration error. Please ensure SHA-1 fingerprint is added in Firebase Console.';
+      } else if (errorStr.contains('canceled') || errorStr.contains('cancelled')) {
+        _errorMessage = null;
+      } else {
+        _errorMessage = 'Sign-in failed: ${e is Exception ? e.toString().replaceAll('Exception: ', '') : e}';
+      }
       notifyListeners();
       return false;
     }
