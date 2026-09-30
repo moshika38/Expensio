@@ -56,13 +56,14 @@ class DefaultFirebaseOptions {
     projectId: 'expensio-d9892',
     storageBucket: 'expensio-d9892.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAaOoM1JJJ86yRJGa6iVpZ4NCCTUCK1emA',
     appId: '1:357030757607:ios:a9488c9d57bf0eee058e42',
     messagingSenderId: '357030757607',
     projectId: 'expensio-d9892',
     storageBucket: 'expensio-d9892.firebasestorage.app',
+    androidClientId: '357030757607-tub9udofe3q282qfgs7gft8hq0r2vp6q.apps.googleusercontent.com',
+    iosClientId: '357030757607-dftqr3s13gtl9gnli2lck0kuolls2or7.apps.googleusercontent.com',
     iosBundleId: 'com.example.expensio',
   );
 }
