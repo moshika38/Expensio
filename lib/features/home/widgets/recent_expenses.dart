@@ -65,7 +65,11 @@ class RecentExpensesWidget extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: recentList.length,
             itemBuilder: (context, index) {
-              return ExpenseCard(expense: recentList[index]);
+              final expense = recentList[index];
+              return ExpenseCard(
+                key: ValueKey(expense.id.isNotEmpty ? expense.id : 'recent_$index'),
+                expense: expense,
+              );
             },
           ),
       ],

@@ -2,15 +2,14 @@ import '../models/expense_model.dart';
 import 'firebase_service.dart';
 
 class ExpenseService {
-  final FirebaseService _firebaseService;
+  final FirebaseService? firebaseService;
 
-  ExpenseService({FirebaseService? firebaseService})
-      : _firebaseService = firebaseService ?? FirebaseService();
+  ExpenseService({this.firebaseService});
 
   /// Fetch expenses for a specific user ordered by date descending
   Future<List<ExpenseModel>> fetchExpenses({String? uid}) async {
     try {
-      final collection = _firebaseService.getUserExpensesCollection(uid);
+      final collection = (firebaseService ?? FirebaseService()).getUserExpensesCollection(uid);
       final snapshot = await collection.orderBy('date', descending: true).get();
 
       return snapshot.docs
@@ -23,7 +22,7 @@ class ExpenseService {
 
   /// Stream expenses real-time for a specific user
   Stream<List<ExpenseModel>> streamExpenses({String? uid}) {
-    final collection = _firebaseService.getUserExpensesCollection(uid);
+    final collection = (firebaseService ?? FirebaseService()).getUserExpensesCollection(uid);
     return collection
         .orderBy('date', descending: true)
         .snapshots()
@@ -34,7 +33,7 @@ class ExpenseService {
   /// Add a new expense for a user
   Future<String> addExpense(ExpenseModel expense, {String? uid}) async {
     try {
-      final collection = _firebaseService.getUserExpensesCollection(uid);
+      final collection = (firebaseService ?? FirebaseService()).getUserExpensesCollection(uid);
       final docRef = await collection.add(expense.toMap());
       return docRef.id;
     } catch (e) {
@@ -45,7 +44,7 @@ class ExpenseService {
   /// Update an existing expense for a user
   Future<void> updateExpense(ExpenseModel expense, {String? uid}) async {
     try {
-      final collection = _firebaseService.getUserExpensesCollection(uid);
+      final collection = (firebaseService ?? FirebaseService()).getUserExpensesCollection(uid);
       await collection.doc(expense.id).update(expense.toMap());
     } catch (e) {
       rethrow;
@@ -55,7 +54,7 @@ class ExpenseService {
   /// Delete an expense for a user
   Future<void> deleteExpense(String id, {String? uid}) async {
     try {
-      final collection = _firebaseService.getUserExpensesCollection(uid);
+      final collection = (firebaseService ?? FirebaseService()).getUserExpensesCollection(uid);
       await collection.doc(id).delete();
     } catch (e) {
       rethrow;

@@ -8,21 +8,18 @@ import '../widgets/monthly_summary.dart';
 import '../widgets/expense_chart.dart';
 import '../widgets/recent_expenses.dart';
 import '../widgets/profile_bottom_sheet.dart';
+import '../../expenses/widgets/month_selector.dart';
 import '../../expenses/screens/expense_list_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
-  @override
   Widget build(BuildContext context) {
+    final expenseProvider = context.watch<ExpenseProvider>();
+    final currentIndex = expenseProvider.selectedTabIndex;
+
     final List<Widget> pages = [
       _buildDashboardView(context),
       const ExpenseListScreen(),
@@ -31,21 +28,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: pages,
       ),
-      floatingActionButton: _currentIndex == 0 || _currentIndex == 1
+      floatingActionButton: currentIndex == 0 || currentIndex == 1
           ? FloatingActionButton(
               onPressed: () => context.push('/add-expense'),
               child: const Icon(Icons.add_rounded, size: 28),
             )
           : null,
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+        currentIndex: currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          expenseProvider.setSelectedTabIndex(index);
         },
         items: const [
           BottomNavigationBarItem(
@@ -151,7 +146,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
+
+              // Month Selector Bar
+              const MonthSelectorBar(),
+              const SizedBox(height: 18),
 
               // Monthly Summary Card
               const MonthlySummaryCard(),
@@ -164,9 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Recent Expenses List
               RecentExpensesWidget(
                 onViewAllPressed: () {
-                  setState(() {
-                    _currentIndex = 1;
-                  });
+                  provider.setSelectedTabIndex(1);
                 },
               ),
               const SizedBox(height: 32),

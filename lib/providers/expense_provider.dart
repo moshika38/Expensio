@@ -17,10 +17,16 @@ class ExpenseProvider extends ChangeNotifier {
   DateTime? _selectedDateFilter;
   String _searchQuery = '';
 
+  // Month Selection State
+  DateTime _selectedMonth = DateTime.now();
+  bool _isAllTimeFilter = false;
+  int _selectedTabIndex = 0;
+
   // App Preference state
   ThemeMode _themeMode = ThemeMode.dark;
   String _selectedCurrency = AppConstants.defaultCurrency;
 
+  bool _hasAttemptedSeed = false;
   StreamSubscription<List<ExpenseModel>>? _expensesSubscription;
 
   ExpenseProvider({ExpenseRepository? repository})
@@ -31,6 +37,7 @@ class ExpenseProvider extends ChangeNotifier {
     if (_currentUid != uid) {
       _currentUid = uid;
       _expenses.clear();
+      _hasAttemptedSeed = false;
       _initRealtimeStream();
     }
   }
@@ -44,10 +51,50 @@ class ExpenseProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   ThemeMode get themeMode => _themeMode;
   String get selectedCurrency => _selectedCurrency;
+  DateTime get selectedMonth => _selectedMonth;
+  bool get isAllTimeFilter => _isAllTimeFilter;
+  int get selectedTabIndex => _selectedTabIndex;
 
-  /// Filtered expense list based on category, date, and search term
+  void setSelectedTabIndex(int index) {
+    if (_selectedTabIndex != index) {
+      _selectedTabIndex = index;
+      notifyListeners();
+    }
+  }
+
+  void setSelectedMonth(DateTime month) {
+    _selectedMonth = DateTime(month.year, month.month, 1);
+    _isAllTimeFilter = false;
+    notifyListeners();
+  }
+
+  void previousMonth() {
+    _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
+    _isAllTimeFilter = false;
+    notifyListeners();
+  }
+
+  void nextMonth() {
+    _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+    _isAllTimeFilter = false;
+    notifyListeners();
+  }
+
+  void toggleAllTime() {
+    _isAllTimeFilter = !_isAllTimeFilter;
+    notifyListeners();
+  }
+
+  /// Filtered expense list based on selected month, category, date, and search term
   List<ExpenseModel> get filteredExpenses {
     return _expenses.where((expense) {
+      if (!_isAllTimeFilter) {
+        if (expense.date.year != _selectedMonth.year ||
+            expense.date.month != _selectedMonth.month) {
+          return false;
+        }
+      }
+
       if (_selectedCategoryFilter != null && _selectedCategoryFilter!.isNotEmpty) {
         if (expense.category.toLowerCase() != _selectedCategoryFilter!.toLowerCase()) {
           return false;
@@ -81,44 +128,49 @@ class ExpenseProvider extends ChangeNotifier {
     return _expenses.fold(0.0, (sum, item) => sum + item.amount);
   }
 
-  /// Total amount for the current month
+  /// Total amount for the selected month (or overall if all-time)
   double get currentMonthTotal {
-    final now = DateTime.now();
+    if (_isAllTimeFilter) return totalExpenses;
     return _expenses.where((e) {
-      return e.date.year == now.year && e.date.month == now.month;
+      return e.date.year == _selectedMonth.year && e.date.month == _selectedMonth.month;
     }).fold(0.0, (sum, item) => sum + item.amount);
   }
 
-  /// Total expense count for current month
+  /// Total expense count for selected month
   int get currentMonthCount {
-    final now = DateTime.now();
-    return _expenses.where((e) => e.date.year == now.year && e.date.month == now.month).length;
+    if (_isAllTimeFilter) return _expenses.length;
+    return _expenses.where((e) => e.date.year == _selectedMonth.year && e.date.month == _selectedMonth.month).length;
   }
 
-  /// Recent 5 expenses
+  /// Recent 5 expenses (respecting active month selection if not all-time)
   List<ExpenseModel> get recentExpenses {
-    final sorted = List<ExpenseModel>.from(_expenses)
+    final sourceList = _isAllTimeFilter
+        ? _expenses
+        : _expenses.where((e) => e.date.year == _selectedMonth.year && e.date.month == _selectedMonth.month).toList();
+    final sorted = List<ExpenseModel>.from(sourceList)
       ..sort((a, b) => b.date.compareTo(a.date));
     return sorted.take(5).toList();
   }
 
-  /// Category breakdown: map of category name to total spent
+  /// Category breakdown: map of category name to total spent for selected month
   Map<String, double> get categoryBreakdown {
     final Map<String, double> breakdown = {};
-    for (final expense in _expenses) {
+    final targetList = _isAllTimeFilter
+        ? _expenses
+        : _expenses.where((e) => e.date.year == _selectedMonth.year && e.date.month == _selectedMonth.month);
+    for (final expense in targetList) {
       breakdown[expense.category] = (breakdown[expense.category] ?? 0.0) + expense.amount;
     }
     return breakdown;
   }
 
-  /// Daily expenses summary for current month
+  /// Daily expenses summary for selected month
   Map<int, double> get dailyTotalsForCurrentMonth {
-    final now = DateTime.now();
-    final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
+    final daysInMonth = DateUtils.getDaysInMonth(_selectedMonth.year, _selectedMonth.month);
     final Map<int, double> totals = {for (int i = 1; i <= daysInMonth; i++) i: 0.0};
 
     for (final expense in _expenses) {
-      if (expense.date.year == now.year && expense.date.month == now.month) {
+      if (expense.date.year == _selectedMonth.year && expense.date.month == _selectedMonth.month) {
         totals[expense.date.day] = (totals[expense.date.day] ?? 0.0) + expense.amount;
       }
     }
@@ -134,10 +186,11 @@ class ExpenseProvider extends ChangeNotifier {
     try {
       _expensesSubscription = _repository.getExpensesStream(uid: _currentUid).listen(
         (data) {
-          if (data.isEmpty && _expenses.isEmpty) {
+          if (data.isEmpty && _expenses.isEmpty && !_hasAttemptedSeed) {
+            _hasAttemptedSeed = true;
             _populateInitialSeedDataIfEmpty();
           } else {
-            _expenses = data;
+            _expenses = List<ExpenseModel>.from(data);
             _isLoading = false;
             _errorMessage = null;
             notifyListeners();
@@ -145,7 +198,6 @@ class ExpenseProvider extends ChangeNotifier {
         },
         onError: (error) async {
           debugPrint('Firestore stream error (falling back to local cache): $error');
-          // If Firestore permissions or network stream fails, gracefully load from local repository
           await loadExpenses();
           _isLoading = false;
           notifyListeners();
@@ -210,10 +262,12 @@ class ExpenseProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _expenses = await _repository.getExpenses(uid: _currentUid);
+      final fetched = await _repository.getExpenses(uid: _currentUid);
+      _expenses = List<ExpenseModel>.from(fetched);
     } catch (e) {
       debugPrint('Expense load note: $e');
-      if (_expenses.isEmpty) {
+      if (_expenses.isEmpty && !_hasAttemptedSeed) {
+        _hasAttemptedSeed = true;
         _populateInitialSeedDataIfEmpty();
       }
     } finally {
@@ -246,9 +300,11 @@ class ExpenseProvider extends ChangeNotifier {
       );
 
       final created = await _repository.addExpense(newExpense, uid: _currentUid);
-      if (!_expenses.any((e) => e.id == created.id)) {
-        _expenses.insert(0, created);
+      final updatedList = List<ExpenseModel>.from(_expenses);
+      if (!updatedList.any((e) => e.id == created.id)) {
+        updatedList.insert(0, created);
       }
+      _expenses = updatedList;
       _isLoading = false;
       notifyListeners();
       return true;
@@ -269,9 +325,11 @@ class ExpenseProvider extends ChangeNotifier {
     try {
       await _repository.updateExpense(updatedExpense, uid: _currentUid);
       final index = _expenses.indexWhere((e) => e.id == updatedExpense.id);
+      final updatedList = List<ExpenseModel>.from(_expenses);
       if (index != -1) {
-        _expenses[index] = updatedExpense;
+        updatedList[index] = updatedExpense;
       }
+      _expenses = updatedList;
       _isLoading = false;
       notifyListeners();
       return true;
@@ -291,7 +349,8 @@ class ExpenseProvider extends ChangeNotifier {
 
     try {
       await _repository.deleteExpense(id, uid: _currentUid);
-      _expenses.removeWhere((e) => e.id == id);
+      final updatedList = List<ExpenseModel>.from(_expenses)..removeWhere((e) => e.id == id);
+      _expenses = updatedList;
       _isLoading = false;
       notifyListeners();
       return true;

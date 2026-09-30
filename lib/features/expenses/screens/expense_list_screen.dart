@@ -7,7 +7,9 @@ import '../../../core/widgets/loading_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../providers/expense_provider.dart';
 import '../widgets/expense_card.dart';
+import '../widgets/month_selector.dart';
 import '../widgets/expense_filter.dart';
+import '../../../core/utils/currency_utils.dart';
 
 class ExpenseListScreen extends StatelessWidget {
   const ExpenseListScreen({super.key});
@@ -15,6 +17,8 @@ class ExpenseListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ExpenseProvider>();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -32,6 +36,53 @@ class ExpenseListScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
             children: [
+              const SizedBox(height: 12),
+              // Month Selector Bar
+              const MonthSelectorBar(),
+              const SizedBox(height: 12),
+              // Quick Month Summary Stats Pill Banner
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.emeraldPrimary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AppColors.emeraldPrimary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${provider.filteredExpenses.length} Transactions',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          'Total: ',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted,
+                          ),
+                        ),
+                        Text(
+                          CurrencyUtils.formatAmount(provider.currentMonthTotal, symbol: provider.selectedCurrency),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.emeraldPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
               const ExpenseFilterBar(),
               const SizedBox(height: 16),
@@ -70,8 +121,10 @@ class ExpenseListScreen extends StatelessWidget {
                                   physics: const AlwaysScrollableScrollPhysics(),
                                   itemCount: provider.filteredExpenses.length,
                                   itemBuilder: (context, index) {
+                                    final expense = provider.filteredExpenses[index];
                                     return ExpenseCard(
-                                      expense: provider.filteredExpenses[index],
+                                      key: ValueKey(expense.id.isNotEmpty ? expense.id : 'expense_$index'),
+                                      expense: expense,
                                     );
                                   },
                                 ),

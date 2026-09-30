@@ -14,7 +14,9 @@ class MonthlySummaryCard extends StatelessWidget {
     final currency = provider.selectedCurrency;
     final monthTotal = provider.currentMonthTotal;
     final totalCount = provider.currentMonthCount;
-    final currentMonthName = AppDateUtils.formatMonthYear(DateTime.now());
+    final currentMonthName = provider.isAllTimeFilter
+        ? 'All Time Summary'
+        : AppDateUtils.formatMonthYear(provider.selectedMonth);
 
     return Container(
       width: double.infinity,
