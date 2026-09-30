@@ -37,7 +37,8 @@ class ExpenseCard extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted).withValues(alpha: 0.4),
+                    color: (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted)
+                        .withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -262,7 +263,7 @@ class ExpenseCard extends StatelessWidget {
           onTap: () => _showExpenseDetails(context),
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
@@ -271,11 +272,12 @@ class ExpenseCard extends StatelessWidget {
             ),
             child: Row(
               children: [
+                // Category Icon Badge
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: categoryInfo.color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     categoryInfo.icon,
@@ -283,7 +285,9 @@ class ExpenseCard extends StatelessWidget {
                     color: categoryInfo.color,
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
+
+                // Expense Title & Meta
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,14 +334,62 @@ class ExpenseCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  CurrencyUtils.formatAmount(expense.amount, symbol: currency),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.emeraldPrimary,
-                  ),
+                const SizedBox(width: 8),
+
+                // Amount & Direct Quick Action Buttons (Edit & Delete)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      CurrencyUtils.formatAmount(expense.amount, symbol: currency),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.emeraldPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Edit Action Icon
+                        InkWell(
+                          onTap: () => context.push('/edit-expense', extra: expense),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppColors.emeraldPrimary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.edit_rounded,
+                              size: 16,
+                              color: AppColors.emeraldPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // Delete Action Icon
+                        InkWell(
+                          onTap: () => _confirmDelete(context),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 16,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
