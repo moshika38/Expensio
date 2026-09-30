@@ -42,6 +42,7 @@ dependencies:
   firebase_auth: ^6.7.0
   google_sign_in: ^7.2.0
   shared_preferences: ^2.5.5
+  names_launcher: ^0.0.2
 
 dev_dependencies:
   flutter_test:
@@ -95,3 +96,12 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+names_launcher:
+  name: "Expensio"
+  platforms:
+    android:
+      enable: true
+    ios:
+      enable: true
+
